@@ -127,3 +127,19 @@ export async function fetchStats(): Promise<FairStats> {
   }
   return res.json();
 }
+
+/**
+ * 删除指定市集及其全部关联摊位。
+ * @param id - 市集 ID
+ * @throws {Error} 市集不存在或其他错误
+ */
+export async function deleteFair(id: number): Promise<{ success: boolean; message: string }> {
+  const res = await fetch(`${API_BASE}/fairs/${id}`, {
+    method: "DELETE",
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    throw new Error(data?.error ?? "删除市集失败");
+  }
+  return res.json();
+}

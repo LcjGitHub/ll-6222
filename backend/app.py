@@ -222,6 +222,34 @@ def update_booth(fair_id: int, booth_number: str):
         conn.close()
 
 
+@app.delete("/api/fairs/<int:fair_id>")
+def delete_fair(fair_id: int):
+    """按市集编号删除该届市集及其全部关联摊位。
+
+    返回：
+        200: 删除成功，返回成功信息
+        404: 市集不存在，返回明确错误
+    """
+    conn = get_connection()
+    try:
+        fair = conn.execute(
+            "SELECT id, name FROM fairs WHERE id = ?",
+            (fair_id,),
+        ).fetchone()
+        if fair is None:
+            return jsonify({"error": f"编号为 {fair_id} 的市集不存在"}), 404
+
+        conn.execute("DELETE FROM fairs WHERE id = ?", (fair_id,))
+        conn.commit()
+
+        return jsonify({
+            "success": True,
+            "message": f'市集「{fair["name"]}」已删除',
+        })
+    finally:
+        conn.close()
+
+
 if __name__ == "__main__":
     init_db()
     app.run(host="0.0.0.0", port=4000, debug=True)

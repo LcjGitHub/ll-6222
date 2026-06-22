@@ -2,6 +2,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import CalendarMonthIcon from "@mui/icons-material/CalendarMonth";
 import CheckIcon from "@mui/icons-material/Check";
 import CloseIcon from "@mui/icons-material/Close";
+import DeleteIcon from "@mui/icons-material/Delete";
 import EditIcon from "@mui/icons-material/Edit";
 import LocationOnIcon from "@mui/icons-material/LocationOn";
 import {
@@ -9,6 +10,11 @@ import {
   Box,
   Button,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogContentText,
+  DialogTitle,
   IconButton,
   Paper,
   Snackbar,
@@ -25,8 +31,8 @@ import {
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useState } from "react";
-import { Link as RouterLink, useParams } from "react-router-dom";
-import { fetchFair, updateBooth, ValidationError } from "../api/client";
+import { Link as RouterLink, useNavigate, useParams } from "react-router-dom";
+import { deleteFair, fetchFair, updateBooth, ValidationError } from "../api/client";
 import type { Booth, FieldErrors } from "../types";
 
 interface EditingBooth {
@@ -44,6 +50,7 @@ export function FairDetailPage() {
   const { id } = useParams<{ id: string }>();
   const fairId = Number(id);
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
 
   const [editing, setEditing] = useState<EditingBooth | null>(null);
   const [touched, setTouched] = useState<Record<string, boolean>>({});
@@ -53,6 +60,7 @@ export function FairDetailPage() {
     message: string;
     severity: "success" | "error";
   }>({ open: false, message: "", severity: "success" });
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
 
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["fair", fairId],
@@ -91,6 +99,30 @@ export function FairDetailPage() {
           severity: "error",
         });
       }
+    },
+  });
+
+  const deleteMutation = useMutation({
+    mutationFn: () => deleteFair(fairId),
+    onSuccess: (res) => {
+      setSnackbar({
+        open: true,
+        message: res.message,
+        severity: "success",
+      });
+      queryClient.invalidateQueries({ queryKey: ["fairs"] });
+      queryClient.invalidateQueries({ queryKey: ["stats"] });
+      queryClient.removeQueries({ queryKey: ["fair", fairId] });
+      setDeleteDialogOpen(false);
+      setTimeout(() => navigate("/"), 500);
+    },
+    onError: (err: Error) => {
+      setSnackbar({
+        open: true,
+        message: err.message || "删除失败",
+        severity: "error",
+      });
+      setDeleteDialogOpen(false);
     },
   });
 
@@ -182,22 +214,35 @@ export function FairDetailPage() {
       </Button>
 
       <Box>
-        <Typography variant="h5" fontWeight={700} gutterBottom>
-          {data.name}
-        </Typography>
-        <Stack direction="row" spacing={2} flexWrap="wrap">
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <CalendarMonthIcon fontSize="small" color="action" />
-            <Typography variant="body2" color="text.secondary">
-              {dayjs(data.date).format("YYYY年M月D日")}
+        <Stack direction="row" justifyContent="space-between" alignItems="flex-start">
+          <Box>
+            <Typography variant="h5" fontWeight={700} gutterBottom>
+              {data.name}
             </Typography>
-          </Stack>
-          <Stack direction="row" alignItems="center" spacing={0.5}>
-            <LocationOnIcon fontSize="small" color="action" />
-            <Typography variant="body2" color="text.secondary">
-              {data.city}
-            </Typography>
-          </Stack>
+            <Stack direction="row" spacing={2} flexWrap="wrap">
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <CalendarMonthIcon fontSize="small" color="action" />
+                <Typography variant="body2" color="text.secondary">
+                  {dayjs(data.date).format("YYYY年M月D日")}
+                </Typography>
+              </Stack>
+              <Stack direction="row" alignItems="center" spacing={0.5}>
+                <LocationOnIcon fontSize="small" color="action" />
+                <Typography variant="body2" color="text.secondary">
+                  {data.city}
+                </Typography>
+              </Stack>
+            </Stack>
+          </Box>
+          <Button
+            variant="outlined"
+            color="error"
+            startIcon={<DeleteIcon />}
+            onClick={() => setDeleteDialogOpen(true)}
+            disabled={editing !== null || deleteMutation.isPending}
+          >
+            删除市集
+          </Button>
         </Stack>
       </Box>
 
@@ -335,6 +380,43 @@ export function FairDetailPage() {
           </Table>
         </TableContainer>
       </Box>
+
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => !deleteMutation.isPending && setDeleteDialogOpen(false)}
+        maxWidth="sm"
+        fullWidth
+      >
+        <DialogTitle>确认删除</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            确定要删除市集「{data?.name}」吗？此操作将同时删除该届市集的全部 {data?.booths.length ?? 0} 个摊位记录，且无法恢复。
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={deleteMutation.isPending}
+          >
+            取消
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={() => deleteMutation.mutate()}
+            disabled={deleteMutation.isPending}
+            startIcon={
+              deleteMutation.isPending ? (
+                <CircularProgress size={16} />
+              ) : (
+                <DeleteIcon fontSize="small" />
+              )
+            }
+          >
+            {deleteMutation.isPending ? "删除中..." : "确认删除"}
+          </Button>
+        </DialogActions>
+      </Dialog>
 
       <Snackbar
         open={snackbar.open}
