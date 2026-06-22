@@ -8,21 +8,30 @@ import {
   CardActionArea,
   CardContent,
   CircularProgress,
+  FormControl,
+  InputLabel,
+  MenuItem,
+  Select,
   Stack,
   Typography,
 } from "@mui/material";
 import { useQuery } from "@tanstack/react-query";
 import dayjs from "dayjs";
+import { useState } from "react";
 import { Link as RouterLink } from "react-router-dom";
-import { fetchFairs } from "../api/client";
+import { fetchCities, fetchFairs } from "../api/client";
 
-/**
- * 市集列表页。
- */
 export function FairListPage() {
+  const [city, setCity] = useState("");
+
+  const { data: cities } = useQuery({
+    queryKey: ["cities"],
+    queryFn: fetchCities,
+  });
+
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["fairs"],
-    queryFn: fetchFairs,
+    queryKey: ["fairs", city],
+    queryFn: () => fetchFairs(city || undefined),
   });
 
   if (isLoading) {
@@ -60,6 +69,22 @@ export function FairListPage() {
           添加市集
         </Button>
       </Stack>
+
+      <FormControl size="small" sx={{ minWidth: 160 }}>
+        <InputLabel>城市筛选</InputLabel>
+        <Select
+          value={city}
+          label="城市筛选"
+          onChange={(e) => setCity(e.target.value)}
+        >
+          <MenuItem value="">全部城市</MenuItem>
+          {cities?.map((c) => (
+            <MenuItem key={c} value={c}>
+              {c}
+            </MenuItem>
+          ))}
+        </Select>
+      </FormControl>
 
       {data?.map((fair) => (
         <Card key={fair.id} variant="outlined">

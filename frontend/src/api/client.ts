@@ -18,8 +18,22 @@ export class ValidationError extends Error {
 /**
  * 获取全部市集列表。
  */
-export async function fetchFairs(): Promise<FairSummary[]> {
-  const res = await fetch(`${API_BASE}/fairs`);
+export async function fetchCities(): Promise<string[]> {
+  const res = await fetch(`${API_BASE}/fairs/cities`);
+  if (!res.ok) {
+    throw new Error("加载城市列表失败");
+  }
+  return res.json();
+}
+
+export async function fetchFairs(city?: string): Promise<FairSummary[]> {
+  const params = new URLSearchParams();
+  if (city) {
+    params.set("city", city);
+  }
+  const query = params.toString();
+  const url = query ? `${API_BASE}/fairs?${query}` : `${API_BASE}/fairs`;
+  const res = await fetch(url);
   if (!res.ok) {
     throw new Error("加载市集列表失败");
   }

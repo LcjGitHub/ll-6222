@@ -21,14 +21,38 @@ def ensure_db() -> None:
         app._db_ready = True
 
 
-@app.get("/api/fairs")
-def list_fairs():
-    """返回全部市集列表。"""
+@app.get("/api/fairs/cities")
+def list_cities():
+    """返回所有已存在的城市（去重）。"""
     conn = get_connection()
     try:
         rows = conn.execute(
-            "SELECT id, name, date, city FROM fairs ORDER BY date DESC"
+            "SELECT DISTINCT city FROM fairs ORDER BY city"
         ).fetchall()
+        return jsonify([row[0] for row in rows])
+    finally:
+        conn.close()
+
+
+@app.get("/api/fairs")
+def list_fairs():
+    """返回市集列表，支持按城市筛选。
+
+    查询参数：
+        city: 可选，传入时只返回该城市的市集
+    """
+    city = request.args.get("city", "").strip()
+    conn = get_connection()
+    try:
+        if city:
+            rows = conn.execute(
+                "SELECT id, name, date, city FROM fairs WHERE city = ? ORDER BY date DESC",
+                (city,),
+            ).fetchall()
+        else:
+            rows = conn.execute(
+                "SELECT id, name, date, city FROM fairs ORDER BY date DESC"
+            ).fetchall()
         return jsonify([row_to_dict(row) for row in rows])
     finally:
         conn.close()
