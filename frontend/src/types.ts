@@ -22,12 +22,18 @@ export interface UpdateBoothPayload {
   sales_notes: string;
 }
 
+/** 城市名称。 */
+export type CityName = string;
+
+/** 城市列表（去重后的已有城市）。 */
+export type CityList = CityName[];
+
 /** 市集摘要（列表项）。 */
 export interface FairSummary {
   id: number;
   name: string;
   date: string;
-  city: string;
+  city: CityName;
 }
 
 /** 摊位信息。 */
@@ -42,4 +48,9 @@ export interface Booth {
 /** 市集详情（含摊位）。 */
 export interface FairDetail extends FairSummary {
   booths: Booth[];
+}
+
+/** 市集列表查询参数。 */
+export interface ListFairsParams {
+  city?: CityName;
 }

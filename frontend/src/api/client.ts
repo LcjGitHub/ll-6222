@@ -1,4 +1,13 @@
-import type { CreateFairPayload, Booth, FairDetail, FairSummary, FieldErrors, UpdateBoothPayload } from "../types";
+import type {
+  Booth,
+  CityList,
+  CreateFairPayload,
+  FairDetail,
+  FairSummary,
+  FieldErrors,
+  ListFairsParams,
+  UpdateBoothPayload,
+} from "../types";
 
 const API_BASE = "/api";
 
@@ -16,9 +25,9 @@ export class ValidationError extends Error {
 }
 
 /**
- * 获取全部市集列表。
+ * 获取所有已存在的城市列表（去重）。
  */
-export async function fetchCities(): Promise<string[]> {
+export async function fetchCities(): Promise<CityList> {
   const res = await fetch(`${API_BASE}/fairs/cities`);
   if (!res.ok) {
     throw new Error("加载城市列表失败");
@@ -26,7 +35,11 @@ export async function fetchCities(): Promise<string[]> {
   return res.json();
 }
 
-export async function fetchFairs(city?: string): Promise<FairSummary[]> {
+/**
+ * 获取市集列表，支持按城市筛选。
+ * @param city - 可选，传入时只返回该城市的市集
+ */
+export async function fetchFairs(city?: ListFairsParams["city"]): Promise<FairSummary[]> {
   const params = new URLSearchParams();
   if (city) {
     params.set("city", city);
