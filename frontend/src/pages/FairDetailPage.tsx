@@ -111,6 +111,7 @@ export function FairDetailPage() {
         severity: "success",
       });
       queryClient.invalidateQueries({ queryKey: ["fairs"] });
+      queryClient.invalidateQueries({ queryKey: ["cities"] });
       queryClient.invalidateQueries({ queryKey: ["stats"] });
       queryClient.removeQueries({ queryKey: ["fair", fairId] });
       setDeleteDialogOpen(false);
@@ -122,7 +123,6 @@ export function FairDetailPage() {
         message: err.message || "删除失败",
         severity: "error",
       });
-      setDeleteDialogOpen(false);
     },
   });
 
@@ -240,6 +240,7 @@ export function FairDetailPage() {
             startIcon={<DeleteIcon />}
             onClick={() => setDeleteDialogOpen(true)}
             disabled={editing !== null || deleteMutation.isPending}
+            aria-label="删除当前市集及全部摊位"
           >
             删除市集
           </Button>
@@ -397,6 +398,7 @@ export function FairDetailPage() {
           <Button
             onClick={() => setDeleteDialogOpen(false)}
             disabled={deleteMutation.isPending}
+            aria-label="取消删除操作"
           >
             取消
           </Button>
@@ -405,6 +407,7 @@ export function FairDetailPage() {
             color="error"
             onClick={() => deleteMutation.mutate()}
             disabled={deleteMutation.isPending}
+            aria-label="确认删除当前市集及全部摊位"
             startIcon={
               deleteMutation.isPending ? (
                 <CircularProgress size={16} />

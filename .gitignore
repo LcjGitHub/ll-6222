@@ -136,3 +136,8 @@ tmp/
 # App data
 history_snapshots.json
 data/*.db
+
+# 项目 SQLite 数据库（首次启动自动创建并 seed，自测数据不提交）
+backend/data/*.db
+backend/data/*.sqlite
+backend/data/*.sqlite3

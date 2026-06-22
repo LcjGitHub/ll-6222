@@ -66,4 +66,9 @@ npm run dev
 | 方法 | 路径 | 说明 |
 |------|------|------|
 | GET | `/api/fairs` | 市集列表 |
-| GET | `/api/fairs/:id` | 市集详情（含 booths） |
+| POST | `/api/fairs` | 新建市集 |
+| GET | `/api/fairs/:id` | 市集详情（含摊位列表） |
+| DELETE | `/api/fairs/:id` | 删除指定市集及全部关联摊位；不存在时返回 404 |
+| PUT | `/api/fairs/:id/booths/:booth_number` | 更新摊位信息 |
+| GET | `/api/fairs/stats` | 市集统计汇总 |
+| GET | `/api/fairs/cities` | 城市列表（去重） |
