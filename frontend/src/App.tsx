@@ -9,6 +9,7 @@ import {
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Link as RouterLink, Route, Routes } from "react-router-dom";
+import { AddFairPage } from "./pages/AddFairPage";
 import { FairDetailPage } from "./pages/FairDetailPage";
 import { FairListPage } from "./pages/FairListPage";
 import { theme } from "./theme";
@@ -51,6 +52,7 @@ export default function App() {
           <Container maxWidth="md" sx={{ py: 4 }}>
             <Routes>
               <Route path="/" element={<FairListPage />} />
+              <Route path="/fairs/new" element={<AddFairPage />} />
               <Route path="/fairs/:id" element={<FairDetailPage />} />
             </Routes>
           </Container>

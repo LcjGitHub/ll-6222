@@ -1,6 +1,6 @@
 """独立漫画市集备忘录 · Flask API。"""
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, request
 from flask_cors import CORS
 
 from db import get_connection, init_db, row_to_dict
@@ -26,6 +26,41 @@ def list_fairs():
             "SELECT id, name, date, city FROM fairs ORDER BY date DESC"
         ).fetchall()
         return jsonify([row_to_dict(row) for row in rows])
+    finally:
+        conn.close()
+
+
+@app.post("/api/fairs")
+def create_fair():
+    """新建市集，校验必填项后写入数据库。"""
+    body = request.get_json(silent=True) or {}
+    name = (body.get("name") or "").strip()
+    date = (body.get("date") or "").strip()
+    city = (body.get("city") or "").strip()
+
+    errors = {}
+    if not name:
+        errors["name"] = "市集名称不能为空"
+    if not date:
+        errors["date"] = "举办日期不能为空"
+    if not city:
+        errors["city"] = "举办城市不能为空"
+
+    if errors:
+        return jsonify({"error": "参数校验失败", "details": errors}), 400
+
+    conn = get_connection()
+    try:
+        cursor = conn.execute(
+            "INSERT INTO fairs (name, date, city) VALUES (?, ?, ?)",
+            (name, date, city),
+        )
+        conn.commit()
+        fair = conn.execute(
+            "SELECT id, name, date, city FROM fairs WHERE id = ?",
+            (cursor.lastrowid,),
+        ).fetchone()
+        return jsonify(row_to_dict(fair)), 201
     finally:
         conn.close()
 

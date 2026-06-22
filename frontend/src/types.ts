@@ -1,3 +1,10 @@
+/** 新建市集的请求体。 */
+export interface CreateFairPayload {
+  name: string;
+  date: string;
+  city: string;
+}
+
 /** 市集摘要（列表项）。 */
 export interface FairSummary {
   id: number;

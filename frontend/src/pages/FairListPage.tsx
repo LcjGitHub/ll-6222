@@ -3,6 +3,7 @@ import LocationOnIcon from "@mui/icons-material/LocationOn";
 import {
   Alert,
   Box,
+  Button,
   Card,
   CardActionArea,
   CardContent,
@@ -42,12 +43,23 @@ export function FairListPage() {
 
   return (
     <Stack spacing={2}>
-      <Typography variant="h5" fontWeight={700}>
-        市集列表
-      </Typography>
-      <Typography variant="body2" color="text.secondary">
-        共 {data?.length ?? 0} 届 · 点击查看摊位备忘
-      </Typography>
+      <Stack direction="row" justifyContent="space-between" alignItems="center">
+        <Box>
+          <Typography variant="h5" fontWeight={700}>
+            市集列表
+          </Typography>
+          <Typography variant="body2" color="text.secondary">
+            共 {data?.length ?? 0} 届 · 点击查看摊位备忘
+          </Typography>
+        </Box>
+        <Button
+          variant="contained"
+          component={RouterLink}
+          to="/fairs/new"
+        >
+          添加市集
+        </Button>
+      </Stack>
 
       {data?.map((fair) => (
         <Card key={fair.id} variant="outlined">
