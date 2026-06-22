@@ -1,4 +1,4 @@
-import type { CreateFairPayload, FairDetail, FairSummary, FieldErrors } from "../types";
+import type { CreateFairPayload, Booth, FairDetail, FairSummary, FieldErrors, UpdateBoothPayload } from "../types";
 
 const API_BASE = "/api";
 
@@ -56,6 +56,29 @@ export async function createFair(payload: CreateFairPayload): Promise<FairSummar
       throw new ValidationError(data.error ?? "参数校验失败", data.details as FieldErrors);
     }
     throw new Error(data?.error ?? "新建市集失败");
+  }
+  return res.json();
+}
+
+/**
+ * 更新摊位信息。
+ * @param boothId - 摊位 ID
+ * @param payload - 摊位信息（摊位号、作品名、销量备注）
+ * @throws {ValidationError} 字段校验失败时抛出，包含字段级错误详情
+ * @throws {Error} 其他网络或服务端错误
+ */
+export async function updateBooth(boothId: number, payload: UpdateBoothPayload): Promise<Booth> {
+  const res = await fetch(`${API_BASE}/booths/${boothId}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const data = await res.json().catch(() => null);
+    if (data?.details && typeof data.details === "object") {
+      throw new ValidationError(data.error ?? "参数校验失败", data.details as FieldErrors);
+    }
+    throw new Error(data?.error ?? "更新摊位失败");
   }
   return res.json();
 }
