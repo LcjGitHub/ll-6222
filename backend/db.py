@@ -80,3 +80,35 @@ def init_db() -> None:
 def row_to_dict(row: sqlite3.Row) -> dict:
     """将 sqlite3.Row 转为普通 dict。"""
     return dict(row)
+
+
+def find_booth_by_number(conn: sqlite3.Connection, fair_id: int, booth_number: str):
+    """按市集 ID 和摊位号查找摊位。"""
+    return conn.execute(
+        """
+        SELECT id, fair_id, booth_number, work_name, sales_notes
+        FROM booths
+        WHERE fair_id = ? AND booth_number = ?
+        """,
+        (fair_id, booth_number),
+    ).fetchone()
+
+
+def update_booth_by_number(
+    conn: sqlite3.Connection,
+    fair_id: int,
+    old_booth_number: str,
+    new_booth_number: str,
+    work_name: str,
+    sales_notes: str,
+) -> bool:
+    """按市集 ID 和原摊位号更新摊位信息，返回是否命中更新。"""
+    cursor = conn.execute(
+        """
+        UPDATE booths
+        SET booth_number = ?, work_name = ?, sales_notes = ?
+        WHERE fair_id = ? AND booth_number = ?
+        """,
+        (new_booth_number, work_name, sales_notes, fair_id, old_booth_number),
+    )
+    return cursor.rowcount > 0

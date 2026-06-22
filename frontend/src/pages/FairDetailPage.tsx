@@ -26,10 +26,12 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import dayjs from "dayjs";
 import { useState } from "react";
 import { Link as RouterLink, useParams } from "react-router-dom";
-import { fetchFair, updateBooth } from "../api/client";
-import type { Booth } from "../types";
+import { fetchFair, updateBooth, ValidationError } from "../api/client";
+import type { Booth, FieldErrors } from "../types";
 
 interface EditingBooth {
+  id: number;
+  old_booth_number: string;
   booth_number: string;
   work_name: string;
   sales_notes: string;
@@ -43,8 +45,9 @@ export function FairDetailPage() {
   const fairId = Number(id);
   const queryClient = useQueryClient();
 
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [editingData, setEditingData] = useState<EditingBooth | null>(null);
+  const [editing, setEditing] = useState<EditingBooth | null>(null);
+  const [touched, setTouched] = useState<Record<string, boolean>>({});
+  const [serverErrors, setServerErrors] = useState<FieldErrors>({});
   const [snackbar, setSnackbar] = useState<{
     open: boolean;
     message: string;
@@ -58,8 +61,15 @@ export function FairDetailPage() {
   });
 
   const updateMutation = useMutation({
-    mutationFn: (params: { boothId: number; payload: EditingBooth }) =>
-      updateBooth(params.boothId, params.payload),
+    mutationFn: (params: {
+      fairId: number;
+      oldBoothNumber: string;
+      payload: {
+        booth_number: string;
+        work_name: string;
+        sales_notes: string;
+      };
+    }) => updateBooth(params.fairId, params.oldBoothNumber, params.payload),
     onSuccess: () => {
       setSnackbar({
         open: true,
@@ -67,35 +77,73 @@ export function FairDetailPage() {
         severity: "success",
       });
       queryClient.invalidateQueries({ queryKey: ["fair", fairId] });
-      setEditingId(null);
-      setEditingData(null);
+      setEditing(null);
+      setTouched({});
+      setServerErrors({});
     },
     onError: (err: Error) => {
-      setSnackbar({
-        open: true,
-        message: err.message || "保存失败",
-        severity: "error",
-      });
+      if (err instanceof ValidationError) {
+        setServerErrors(err.details);
+      } else {
+        setSnackbar({
+          open: true,
+          message: err.message || "保存失败",
+          severity: "error",
+        });
+      }
     },
   });
 
   const handleEdit = (booth: Booth) => {
-    setEditingId(booth.id);
-    setEditingData({
+    if (editing !== null) return;
+    setEditing({
+      id: booth.id,
+      old_booth_number: booth.booth_number,
       booth_number: booth.booth_number,
       work_name: booth.work_name,
       sales_notes: booth.sales_notes,
     });
+    setTouched({});
+    setServerErrors({});
   };
 
   const handleCancel = () => {
-    setEditingId(null);
-    setEditingData(null);
+    setEditing(null);
+    setTouched({});
+    setServerErrors({});
   };
 
+  const boothNumberTouched = touched.booth_number || !!serverErrors.booth_number;
+  const workNameTouched = touched.work_name || !!serverErrors.work_name;
+
+  const boothNumberError =
+    editing && boothNumberTouched && !editing.booth_number.trim()
+      ? "摊位号不能为空"
+      : serverErrors.booth_number ?? "";
+  const workNameError =
+    editing && workNameTouched && !editing.work_name.trim()
+      ? "作品名不能为空"
+      : serverErrors.work_name ?? "";
+
+  const formValid =
+    editing !== null &&
+    !!editing.booth_number.trim() &&
+    !!editing.work_name.trim();
+
   const handleSave = () => {
-    if (editingId === null || !editingData) return;
-    updateMutation.mutate({ boothId: editingId, payload: editingData });
+    if (!editing) return;
+    setTouched({ booth_number: true, work_name: true });
+    setServerErrors({});
+    if (!formValid) return;
+    updateMutation.mutate({
+      fairId,
+      oldBoothNumber: editing.old_booth_number,
+      payload: {
+        booth_number: editing.booth_number.trim(),
+        work_name: editing.work_name.trim(),
+        sales_notes: editing.sales_notes,
+      },
+    });
   };
 
   const handleCloseSnackbar = () => {
@@ -171,7 +219,7 @@ export function FairDetailPage() {
             </TableHead>
             <TableBody>
               {data.booths.map((booth) => {
-                const isEditing = editingId === booth.id;
+                const isEditing = editing?.id === booth.id;
                 return (
                   <TableRow key={booth.id} hover>
                     <TableCell>
@@ -179,12 +227,20 @@ export function FairDetailPage() {
                         <TextField
                           size="small"
                           fullWidth
-                          value={editingData?.booth_number ?? ""}
-                          onChange={(e) =>
-                            setEditingData((prev) =>
-                              prev ? { ...prev, booth_number: e.target.value } : null
-                            )
-                          }
+                          required
+                          label="摊位号"
+                          value={editing.booth_number}
+                          onChange={(e) => {
+                            setEditing((prev) =>
+                              prev ? { ...prev, booth_number: e.target.value } : null,
+                            );
+                            if (serverErrors.booth_number)
+                              setServerErrors((s) => ({ ...s, booth_number: "" }));
+                          }}
+                          onBlur={() => setTouched((t) => ({ ...t, booth_number: true }))}
+                          error={!!boothNumberError}
+                          helperText={boothNumberError}
+                          disabled={updateMutation.isPending}
                         />
                       ) : (
                         booth.booth_number
@@ -195,12 +251,20 @@ export function FairDetailPage() {
                         <TextField
                           size="small"
                           fullWidth
-                          value={editingData?.work_name ?? ""}
-                          onChange={(e) =>
-                            setEditingData((prev) =>
-                              prev ? { ...prev, work_name: e.target.value } : null
-                            )
-                          }
+                          required
+                          label="作品名"
+                          value={editing.work_name}
+                          onChange={(e) => {
+                            setEditing((prev) =>
+                              prev ? { ...prev, work_name: e.target.value } : null,
+                            );
+                            if (serverErrors.work_name)
+                              setServerErrors((s) => ({ ...s, work_name: "" }));
+                          }}
+                          onBlur={() => setTouched((t) => ({ ...t, work_name: true }))}
+                          error={!!workNameError}
+                          helperText={workNameError}
+                          disabled={updateMutation.isPending}
                         />
                       ) : (
                         booth.work_name
@@ -213,12 +277,14 @@ export function FairDetailPage() {
                           fullWidth
                           multiline
                           minRows={2}
-                          value={editingData?.sales_notes ?? ""}
+                          label="销量备注"
+                          value={editing.sales_notes}
                           onChange={(e) =>
-                            setEditingData((prev) =>
-                              prev ? { ...prev, sales_notes: e.target.value } : null
+                            setEditing((prev) =>
+                              prev ? { ...prev, sales_notes: e.target.value } : null,
                             )
                           }
+                          disabled={updateMutation.isPending}
                         />
                       ) : (
                         booth.sales_notes || "—"
@@ -231,15 +297,21 @@ export function FairDetailPage() {
                             size="small"
                             color="primary"
                             onClick={handleSave}
-                            disabled={updateMutation.isPending}
+                            disabled={updateMutation.isPending || !formValid}
+                            aria-label="保存"
                           >
-                            <CheckIcon fontSize="small" />
+                            {updateMutation.isPending ? (
+                              <CircularProgress size={16} />
+                            ) : (
+                              <CheckIcon fontSize="small" />
+                            )}
                           </IconButton>
                           <IconButton
                             size="small"
                             color="default"
                             onClick={handleCancel}
                             disabled={updateMutation.isPending}
+                            aria-label="取消"
                           >
                             <CloseIcon fontSize="small" />
                           </IconButton>
@@ -249,6 +321,8 @@ export function FairDetailPage() {
                           size="small"
                           color="primary"
                           onClick={() => handleEdit(booth)}
+                          disabled={editing !== null}
+                          aria-label={`编辑摊位 ${booth.booth_number}`}
                         >
                           <EditIcon fontSize="small" />
                         </IconButton>

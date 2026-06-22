@@ -62,13 +62,19 @@ export async function createFair(payload: CreateFairPayload): Promise<FairSummar
 
 /**
  * 更新摊位信息。
- * @param boothId - 摊位 ID
- * @param payload - 摊位信息（摊位号、作品名、销量备注）
+ * @param fairId - 市集 ID
+ * @param oldBoothNumber - 原摊位号
+ * @param payload - 摊位信息（新摊位号、作品名、销量备注）
  * @throws {ValidationError} 字段校验失败时抛出，包含字段级错误详情
  * @throws {Error} 其他网络或服务端错误
  */
-export async function updateBooth(boothId: number, payload: UpdateBoothPayload): Promise<Booth> {
-  const res = await fetch(`${API_BASE}/booths/${boothId}`, {
+export async function updateBooth(
+  fairId: number,
+  oldBoothNumber: string,
+  payload: UpdateBoothPayload,
+): Promise<Booth> {
+  const encodedNumber = encodeURIComponent(oldBoothNumber);
+  const res = await fetch(`${API_BASE}/fairs/${fairId}/booths/${encodedNumber}`, {
     method: "PUT",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify(payload),

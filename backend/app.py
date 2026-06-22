@@ -5,7 +5,7 @@ import re
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
-from db import get_connection, init_db, row_to_dict
+from db import find_booth_by_number, get_connection, init_db, row_to_dict, update_booth_by_number
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
@@ -110,27 +110,27 @@ def get_fair(fair_id: int):
         conn.close()
 
 
-@app.put("/api/booths/<int:booth_id>")
-def update_booth(booth_id: int):
-    """更新摊位信息。
+@app.put("/api/fairs/<int:fair_id>/booths/<path:booth_number>")
+def update_booth(fair_id: int, booth_number: str):
+    """按市集编号和摊位编号更新摊位信息。
 
     请求体：
-        booth_number: 摊位号（必填）
+        booth_number: 新摊位号（必填）
         work_name: 作品名（必填）
         sales_notes: 销量备注（可选）
 
     返回：
         200: 更新成功，返回更新后的摊位记录
         400: 参数校验失败，返回字段级错误详情
-        404: 摊位不存在
+        404: 市集或摊位不存在
     """
     body = request.get_json(silent=True) or {}
-    booth_number = (body.get("booth_number") or "").strip()
+    new_booth_number = (body.get("booth_number") or "").strip()
     work_name = (body.get("work_name") or "").strip()
     sales_notes = body.get("sales_notes") or ""
 
     errors = {}
-    if not booth_number:
+    if not new_booth_number:
         errors["booth_number"] = "摊位号不能为空"
     if not work_name:
         errors["work_name"] = "作品名不能为空"
@@ -140,31 +140,39 @@ def update_booth(booth_id: int):
 
     conn = get_connection()
     try:
-        existing = conn.execute(
-            "SELECT id FROM booths WHERE id = ?",
-            (booth_id,),
+        fair = conn.execute(
+            "SELECT id FROM fairs WHERE id = ?",
+            (fair_id,),
         ).fetchone()
+        if fair is None:
+            return jsonify({"error": "市集不存在"}), 404
+
+        existing = find_booth_by_number(conn, fair_id, booth_number)
         if existing is None:
             return jsonify({"error": "摊位不存在"}), 404
 
-        conn.execute(
-            """
-            UPDATE booths
-            SET booth_number = ?, work_name = ?, sales_notes = ?
-            WHERE id = ?
-            """,
-            (booth_number, work_name, sales_notes, booth_id),
+        updated = update_booth_by_number(
+            conn,
+            fair_id,
+            booth_number,
+            new_booth_number,
+            work_name,
+            sales_notes,
         )
+        if not updated:
+            return jsonify({"error": "摊位不存在"}), 404
         conn.commit()
 
-        booth = conn.execute(
-            """
-            SELECT id, fair_id, booth_number, work_name, sales_notes
-            FROM booths
-            WHERE id = ?
-            """,
-            (booth_id,),
-        ).fetchone()
+        booth = find_booth_by_number(conn, fair_id, new_booth_number)
+        if booth is None:
+            booth = conn.execute(
+                """
+                SELECT id, fair_id, booth_number, work_name, sales_notes
+                FROM booths
+                WHERE id = ?
+                """,
+                (existing["id"],),
+            ).fetchone()
         return jsonify(row_to_dict(booth))
     finally:
         conn.close()
