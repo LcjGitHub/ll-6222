@@ -1,6 +1,9 @@
+import AssessmentIcon from "@mui/icons-material/Assessment";
 import MenuBookIcon from "@mui/icons-material/MenuBook";
 import {
   AppBar,
+  Box,
+  Button,
   Container,
   CssBaseline,
   Toolbar,
@@ -12,6 +15,7 @@ import { BrowserRouter, Link as RouterLink, Route, Routes } from "react-router-d
 import { AddFairPage } from "./pages/AddFairPage";
 import { FairDetailPage } from "./pages/FairDetailPage";
 import { FairListPage } from "./pages/FairListPage";
+import { StatsOverviewPage } from "./pages/StatsOverviewPage";
 import { theme } from "./theme";
 
 const queryClient = new QueryClient({
@@ -47,11 +51,21 @@ export default function App() {
               >
                 独立漫画市集备忘录
               </Typography>
+              <Box sx={{ flexGrow: 1 }} />
+              <Button
+                color="inherit"
+                component={RouterLink}
+                to="/stats"
+                startIcon={<AssessmentIcon />}
+              >
+                统计概览
+              </Button>
             </Toolbar>
           </AppBar>
           <Container maxWidth="md" sx={{ py: 4 }}>
             <Routes>
               <Route path="/" element={<FairListPage />} />
+              <Route path="/stats" element={<StatsOverviewPage />} />
               <Route path="/fairs/new" element={<AddFairPage />} />
               <Route path="/fairs/:id" element={<FairDetailPage />} />
             </Routes>

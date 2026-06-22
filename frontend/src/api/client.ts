@@ -3,6 +3,7 @@ import type {
   CityList,
   CreateFairPayload,
   FairDetail,
+  FairStats,
   FairSummary,
   FieldErrors,
   ListFairsParams,
@@ -112,6 +113,17 @@ export async function updateBooth(
       throw new ValidationError(data.error ?? "参数校验失败", data.details as FieldErrors);
     }
     throw new Error(data?.error ?? "更新摊位失败");
+  }
+  return res.json();
+}
+
+/**
+ * 获取市集统计汇总（市集总数、摊位总数、各城市举办次数）。
+ */
+export async function fetchStats(): Promise<FairStats> {
+  const res = await fetch(`${API_BASE}/fairs/stats`);
+  if (!res.ok) {
+    throw new Error("加载统计数据失败");
   }
   return res.json();
 }

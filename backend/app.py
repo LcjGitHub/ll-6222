@@ -21,6 +21,26 @@ def ensure_db() -> None:
         app._db_ready = True
 
 
+@app.get("/api/fairs/stats")
+def get_stats():
+    """返回市集统计汇总：市集总数、摊位总数、各城市举办次数。"""
+    conn = get_connection()
+    try:
+        fair_count = conn.execute("SELECT COUNT(*) FROM fairs").fetchone()[0]
+        booth_count = conn.execute("SELECT COUNT(*) FROM booths").fetchone()[0]
+        city_rows = conn.execute(
+            "SELECT city, COUNT(*) AS count FROM fairs GROUP BY city ORDER BY count DESC, city"
+        ).fetchall()
+        city_counts = [{"city": row[0], "count": row[1]} for row in city_rows]
+        return jsonify({
+            "fair_count": fair_count,
+            "booth_count": booth_count,
+            "city_counts": city_counts,
+        })
+    finally:
+        conn.close()
+
+
 @app.get("/api/fairs/cities")
 def list_cities():
     """返回所有已存在的城市（去重）。"""

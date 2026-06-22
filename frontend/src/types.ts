@@ -54,3 +54,16 @@ export interface FairDetail extends FairSummary {
 export interface ListFairsParams {
   city?: CityName;
 }
+
+/** 城市举办次数统计。 */
+export interface CityCount {
+  city: CityName;
+  count: number;
+}
+
+/** 市集统计汇总。 */
+export interface FairStats {
+  fair_count: number;
+  booth_count: number;
+  city_counts: CityCount[];
+}
