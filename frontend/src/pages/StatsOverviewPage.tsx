@@ -14,6 +14,12 @@ import {
 import { useQuery } from "@tanstack/react-query";
 import { fetchStats } from "../api/client";
 
+/**
+ * 统计概览页面。
+ *
+ * 通过卡片展示市集总数、摊位总数，以及各城市举办次数统计；
+ * 包含加载中、加载失败和空数据状态处理。
+ */
 export function StatsOverviewPage() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["stats"],

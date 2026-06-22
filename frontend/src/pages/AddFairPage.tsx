@@ -63,6 +63,8 @@ export function AddFairPage() {
     if (showSuccess) {
       const timer = setTimeout(() => {
         queryClient.invalidateQueries({ queryKey: ["fairs"] });
+        queryClient.invalidateQueries({ queryKey: ["cities"] });
+        queryClient.invalidateQueries({ queryKey: ["stats"] });
         navigate("/");
       }, 1200);
       return () => clearTimeout(timer);
