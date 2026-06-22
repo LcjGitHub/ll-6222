@@ -1,6 +1,19 @@
-import type { CreateFairPayload, FairDetail, FairSummary } from "../types";
+import type { CreateFairPayload, FairDetail, FairSummary, FieldErrors } from "../types";
 
 const API_BASE = "/api";
+
+/**
+ * 接口校验错误，包含字段级错误详情。
+ */
+export class ValidationError extends Error {
+  readonly details: FieldErrors;
+
+  constructor(message: string, details: FieldErrors) {
+    super(message);
+    this.name = "ValidationError";
+    this.details = details;
+  }
+}
 
 /**
  * 获取全部市集列表。
@@ -25,6 +38,12 @@ export async function fetchFair(id: number): Promise<FairDetail> {
   return res.json();
 }
 
+/**
+ * 新建市集。
+ * @param payload - 市集信息（名称、日期、城市）
+ * @throws {ValidationError} 字段校验失败时抛出，包含字段级错误详情
+ * @throws {Error} 其他网络或服务端错误
+ */
 export async function createFair(payload: CreateFairPayload): Promise<FairSummary> {
   const res = await fetch(`${API_BASE}/fairs`, {
     method: "POST",
@@ -33,6 +52,9 @@ export async function createFair(payload: CreateFairPayload): Promise<FairSummar
   });
   if (!res.ok) {
     const data = await res.json().catch(() => null);
+    if (data?.details && typeof data.details === "object") {
+      throw new ValidationError(data.error ?? "参数校验失败", data.details as FieldErrors);
+    }
     throw new Error(data?.error ?? "新建市集失败");
   }
   return res.json();

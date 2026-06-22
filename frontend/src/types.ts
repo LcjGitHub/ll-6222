@@ -1,3 +1,10 @@
+/** 字段级校验错误映射。 */
+export interface FieldErrors {
+  name?: string;
+  date?: string;
+  city?: string;
+}
+
 /** 新建市集的请求体。 */
 export interface CreateFairPayload {
   name: string;

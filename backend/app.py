@@ -1,5 +1,7 @@
 """独立漫画市集备忘录 · Flask API。"""
 
+import re
+
 from flask import Flask, jsonify, request
 from flask_cors import CORS
 
@@ -7,6 +9,8 @@ from db import get_connection, init_db, row_to_dict
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
+
+DATE_PATTERN = re.compile(r"^\d{4}-\d{2}-\d{2}$")
 
 
 @app.before_request
@@ -32,7 +36,17 @@ def list_fairs():
 
 @app.post("/api/fairs")
 def create_fair():
-    """新建市集，校验必填项后写入数据库。"""
+    """新建市集。
+
+    请求体：
+        name: 市集名称（必填）
+        date: 举办日期（必填，格式 YYYY-MM-DD）
+        city: 举办城市（必填）
+
+    返回：
+        201: 创建成功，返回新建的市集记录
+        400: 参数校验失败，返回字段级错误详情
+    """
     body = request.get_json(silent=True) or {}
     name = (body.get("name") or "").strip()
     date = (body.get("date") or "").strip()
@@ -43,6 +57,8 @@ def create_fair():
         errors["name"] = "市集名称不能为空"
     if not date:
         errors["date"] = "举办日期不能为空"
+    elif not DATE_PATTERN.match(date):
+        errors["date"] = "举办日期格式需为年年年年-月月-日日"
     if not city:
         errors["city"] = "举办城市不能为空"
 
